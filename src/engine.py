@@ -84,6 +84,49 @@ def tick(state: LineState) -> LineState:
     return state
 
 
+def send_to_rework(state: LineState, body_id: str) -> None:
+    """
+    Снимает кузов с его текущей станции и отправляет в буфер доработки.
+
+    Требования Дня 3:
+    - кузов должен реально находиться на какой-то станции линии
+      (не в очереди, не уже в доработке, не завершён);
+    - после снятия станция немедленно освобождается (occupied_by = None,
+      ticks_spent сбрасывается), так что уже на СЛЕДУЮЩЕМ такте на неё
+      может продвинуться кузов, стоявший позади;
+    - кузов добавляется в state.rework_buffer и получает статус IN_REWORK.
+
+    Бросает ValueError, если кузов не найден или не находится на линии.
+    """
+    body = state.bodies.get(body_id)
+    if body is None:
+        raise ValueError(f"Кузов с id={body_id!r} не найден")
+
+    if body.status != BodyStatus.IN_LINE or body.current_station_id is None:
+        raise ValueError(
+            f"Кузов {body_id!r} нельзя отправить на доработку: "
+            f"он не находится на линии (текущий статус: {body.status.value})"
+        )
+
+    station = state.get_station(body.current_station_id)
+    if station.occupied_by != body_id:
+        # защитная проверка на случай рассинхронизации состояния
+        raise ValueError(
+            f"Несогласованное состояние: станция {station.id!r} не содержит кузов {body_id!r}"
+        )
+
+    _log(state, "REWORK_OUT", body_id, station.id, "rework_buffer")
+
+    # освобождаем станцию — на следующем такте она снова доступна
+    station.occupied_by = None
+    station.ticks_spent = 0
+
+    # переводим кузов в буфер доработки
+    body.current_station_id = None
+    body.status = BodyStatus.IN_REWORK
+    state.rework_buffer.append(body_id)
+
+
 def _log(state: LineState, event_type: str, body_id: str, from_: str | None, to: str | None) -> None:
     """Минимальная запись в журнал событий (полноценно доработаем в День 4)."""
     state.event_log.append(
