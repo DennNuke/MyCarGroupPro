@@ -3,7 +3,7 @@ from pathlib import Path
 from model import Station 
 from console_printer import print_line_state
 from json_loader import load_config
-from engine import tick, sendToRework
+from engine import tick, send_to_tework, return_to_line,change_priority
 
 DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / "json" / "config1.json"
 DEFAULT_TICKS = 10
@@ -18,9 +18,19 @@ def main() -> None:
     for n in range(0, DEFAULT_TICKS):
         input()
         if n == 2:
-            sendToRework(line_state, "b1")
+            send_to_tework(line_state, "b1")
+
+        if n == 3:
+            change_priority(line_state, "b4", 39)
+
+        if n == 5:
+            return_to_line(line_state, "b1", 29)
+
+            
         tick(line_state)
         print_line_state(line_state)
+
+    print(line_state.event_log)
         
 if __name__ == "__main__":
     main()

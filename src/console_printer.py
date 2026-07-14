@@ -1,13 +1,13 @@
 from model import BodyStatus, LineState 
 
 def print_line_state(state: LineState):
-    print(f"\n___ Tick {state.ticks} ___")
+    print(f"\n___ Tick {state.tick} ___")
 
     print("\nStations:")
     for st in state.stations_sorted():
         if st.occupied_by:
             body = state.bodies[st.occupied_by]
-            occ = f"busy: {body.model} ({st.occupied_by}, {body.vin}) — {st.ticks_spent}/{st.processingTicks} ticks"
+            occ = f"busy: {body.model} ({st.occupied_by}, {body.vin}) — {st.ticks_spent}/{st.processing_ticks} ticks"
         else:
             occ = "free"
         print(f"  [{st.order}] {st.name:<22} ({st.id}) — {occ}")

@@ -1,7 +1,7 @@
 from model import BodyStatus, LineState
 
 def tick(state: LineState):
-    state.ticks += 1
+    state.tick += 1
     stations = state.stations_sorted()
     n = len(stations)
 
@@ -10,7 +10,7 @@ def tick(state: LineState):
         if st.occupied_by is None:
             continue
 
-        if st.ticks_spent < st.processingTicks:
+        if st.ticks_spent < st.processing_ticks:
             st.ticks_spent += 1
             continue
 
@@ -22,6 +22,7 @@ def tick(state: LineState):
             body.currentStationId = None
             st.occupied_by = None
             st.ticks_spent = 0
+            _log(state, "EXIT_LINE", body_id, st.id, None)
             continue
 
         next_st = stations[i + 1]
@@ -31,6 +32,8 @@ def tick(state: LineState):
             body.currentStationId = next_st.id
             st.occupied_by = None
             st.ticks_spent = 0
+            
+            _log(state, "ADVANCE_LINE", body_id, st.id, next_st.id)
 
     if stations:
         first_st = stations[0]
@@ -42,10 +45,12 @@ def tick(state: LineState):
             first_st.ticks_spent = 0
             body.currentStationId = first_st.id
             body.status = BodyStatus.IN_LINE
+            
+            _log(state, "ENTER_LINE", body_id, None, first_st.id)
 
     return state
 
-def sendToRework(state: LineState, body_id):
+def send_to_tework(state: LineState, body_id):
     body = state.bodies.get(body_id)
     st = state.get_station(body.currentStationId)
     body.currentStationId = None
@@ -56,3 +61,37 @@ def sendToRework(state: LineState, body_id):
         state.rework_buffer = []
     state.rework_buffer.append(body_id)
     body.status = BodyStatus.IN_REWORK
+    
+    _log(state, "REWORK_SENT", body_id, st.id, "rework")
+
+def return_to_line(state: LineState, body_id, position):
+    body = state.bodies.get(body_id)
+
+    body.priority = position
+    state.input_queue.insert(0, body_id)
+    state.input_queue.sort(key=lambda x: state.bodies.get(x).priority)
+    body.status = BodyStatus.QUEUED
+    state.rework_buffer.remove(body_id)
+
+    
+    _log(state, "RETURN_LINE", body_id, "rework", None)
+
+def  change_priority(state: LineState, body_id, priority):
+    body = state.bodies.get(body_id)
+    _log(state, "PRIORITY_CHANGE", body_id, f"p: ${body.priority}", f"p: ${priority}")
+    body.priority = priority
+    state.input_queue.sort(key=lambda x: state.bodies.get(x).priority)
+    
+
+def _log(state: LineState, event_type: str, body_id: str, from_: str | None, to: str | None) -> None:
+    if state.event_log == None:
+        state.event_log = []
+    state.event_log.append(
+        {
+            "tick": state.tick,
+            "type": event_type,
+            "body_id": body_id,
+            "from": from_,
+            "to": to,
+        }
+    )

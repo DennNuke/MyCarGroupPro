@@ -15,7 +15,7 @@ def load_config(path: str | Path) -> LineState:
             name=s["name"],
             order=s["order"],
             capacity=s.get("capacity", 1),
-            processingTicks=s.get("processingTicks", 1),
+            processing_ticks=s.get("processingTicks", 1),
         )
         for s in raw.get("stations", [])
     ]
