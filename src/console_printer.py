@@ -5,9 +5,9 @@ def print_line_state(state: LineState):
 
     print("\nStations:")
     for st in state.stations_sorted():
-        if st.is_occupied:
+        if st.occupied_by:
             body = state.bodies[st.occupied_by]
-            occ = f"busy: {body.model} ({st.occupied_by}, {body.vin}) — {st.ticks_spent}/{st.processing_ticks} ticks"
+            occ = f"busy: {body.model} ({st.occupied_by}, {body.vin}) — {st.ticks_spent}/{st.processingTicks} ticks"
         else:
             occ = "free"
         print(f"  [{st.order}] {st.name:<22} ({st.id}) — {occ}")

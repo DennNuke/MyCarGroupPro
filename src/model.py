@@ -14,8 +14,11 @@ class Station:
         self.order = order
         self.capacity = capacity
         self.processingTicks = processingTicks
-        self.is_occupied = False
+        self.occupied_by = None
         self.ticks_spent = 0
+
+    def is_free(self) -> bool:
+        return self.occupied_by is None
 
 class Body:
     def __init__(self,id:str, vin:str,model:str, priority:int):
