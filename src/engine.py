@@ -1,4 +1,4 @@
-from model import BodyStatus, LineState 
+from model import BodyStatus, LineState
 
 def tick(state: LineState):
     state.ticks += 1
@@ -40,7 +40,19 @@ def tick(state: LineState):
 
             first_st.occupied_by = body_id
             first_st.ticks_spent = 0
-            body.current_station_id = first_st.id
+            body.currentStationId = first_st.id
             body.status = BodyStatus.IN_LINE
 
     return state
+
+def sendToRework(state: LineState, body_id):
+    body = state.bodies.get(body_id)
+    st = state.get_station(body.currentStationId)
+    body.currentStationId = None
+    st.occupied_by = None
+    st.ticks_spent = 0
+
+    if state.rework_buffer == None:
+        state.rework_buffer = []
+    state.rework_buffer.append(body_id)
+    body.status = BodyStatus.IN_REWORK

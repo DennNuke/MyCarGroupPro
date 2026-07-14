@@ -3,7 +3,7 @@ from pathlib import Path
 from model import Station 
 from console_printer import print_line_state
 from json_loader import load_config
-from engine import tick
+from engine import tick, sendToRework
 
 DEFAULT_CONFIG_PATH = Path(__file__).parent.parent / "json" / "config1.json"
 DEFAULT_TICKS = 10
@@ -17,6 +17,8 @@ def main() -> None:
 
     for n in range(0, DEFAULT_TICKS):
         input()
+        if n == 2:
+            sendToRework(line_state, "b1")
         tick(line_state)
         print_line_state(line_state)
         

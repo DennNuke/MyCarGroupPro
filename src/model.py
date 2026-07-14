@@ -42,7 +42,7 @@ class LineState:
         for st in self.stations:
             if st.id == station_id:
                 return st
-        return 0
+        return None
     
     def stations_sorted(self) -> list[Station]:
         return sorted(self.stations, key=lambda s: s.order)
