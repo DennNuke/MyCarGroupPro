@@ -16,6 +16,7 @@ class Station:
         self.processing_ticks = processing_ticks
         self.occupied_by = None
         self.ticks_spent = 0
+        self.busy_ticks = 0
 
     def is_free(self) -> bool:
         return self.occupied_by is None
@@ -28,6 +29,8 @@ class Body:
         self.current_station_id = None
         self.status = None
         self.priority = priority
+        self.tick_entered = 0
+        self.tick_finished = 0
 
 class LineState:
     def __init__(self, stations, bodies, input_queue):
@@ -37,6 +40,9 @@ class LineState:
         self.event_log = None
         self.tick = 0
         self.input_queue=input_queue
+        self.completed = 0
+        self.throughput = 0
+        self.avgLeadTime = 0
 
     def get_station(self, station_id: str) -> Station:
         for st in self.stations:
@@ -46,4 +52,10 @@ class LineState:
     
     def stations_sorted(self) -> list[Station]:
         return sorted(self.stations, key=lambda s: s.order)
+    
+    def get_metrics(self, total_ticks):
+        return self.completed, self.completed / total_ticks, self.avgLeadTime
+    def get_metrics(self):
+        return self.completed, self.throughput, self.avgLeadTime
+
 
