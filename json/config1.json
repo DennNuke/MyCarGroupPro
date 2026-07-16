@@ -1,10 +1,10 @@
 {
   "stations": [
-    { "id": "st1", "name": "The Choosen One",        "order": 0, "capacity": 1, "processingTicks": 1 },
-    { "id": "st2", "name": "The Second Coming",      "order": 1, "capacity": 1, "processingTicks": 2 },
-    { "id": "st3", "name": "The Third Prince",       "order": 2, "capacity": 1, "processingTicks": 1 },
-    { "id": "st4", "name": "The Fourth Katana",      "order": 3, "capacity": 1, "processingTicks": 3 },
-    { "id": "st5", "name": "The Fifth Who Ended",    "order": 4, "capacity": 1, "processingTicks": 2 }
+    { "id": "st1", "name": "One",        "order": 0, "capacity": 1, "processingTicks": 1 },
+    { "id": "st2", "name": "Two",      "order": 1, "capacity": 1, "processingTicks": 2 },
+    { "id": "st3", "name": "Three",       "order": 2, "capacity": 1, "processingTicks": 1 },
+    { "id": "st4", "name": "Four",      "order": 3, "capacity": 1, "processingTicks": 3 },
+    { "id": "st5", "name": "Five",    "order": 4, "capacity": 1, "processingTicks": 2 }
   ],
   "bodies": [
     { "id": "b1", "vin": "KZ0001", "model": "Mercedes", "priority": 10 },

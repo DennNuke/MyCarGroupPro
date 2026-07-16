@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>MyCar Pro — MES симулятор линии сборки</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; color: #222; }
+  h1 { margin-bottom: 4px; }
+  .sub { color: #666; margin-top: 0; }
+  .panel { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 16px; margin-bottom: 16px; }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .col { flex: 1; min-width: 260px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #eee; font-size: 14px; }
+  th { color: #555; }
+  .free { color: #2a9d2a; }
+  .busy { color: #b8860b; }
+  button { padding: 8px 14px; margin-right: 8px; margin-bottom: 8px; cursor: pointer; border: 1px solid #999; background: #fafafa; border-radius: 4px; }
+  button:hover { background: #eee; }
+  input, select { padding: 6px; margin-right: 6px; border: 1px solid #ccc; border-radius: 4px; }
+  .metrics span { margin-right: 20px; font-weight: bold; }
+  .log { max-height: 220px; overflow-y: auto; font-size: 13px; background: #fafafa; padding: 8px; border: 1px solid #eee; }
+  .tick-badge { display: inline-block; background: #333; color: #fff; padding: 4px 10px; border-radius: 4px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<h1>MyCar Pro</h1>
+<p class="sub">MES: симулятор линии сборки кузовов</p>
+
+<div class="panel">
+  <span class="tick-badge">Такт: <span id="tickNum">0</span></span>
+  <div style="margin-top:12px;">
+    <button onclick="doTick()">Tick →</button>
+    <button onclick="doReset()">Сбросить симуляцию</button>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col panel">
+    <h3>Станции</h3>
+    <table id="stationsTable">
+      <thead><tr><th>#</th><th>Станция</th><th>Статус</th><th>Прогресс</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="col panel">
+    <h3>Входная очередь</h3>
+    <table id="queueTable">
+      <thead><tr><th>ID</th><th>Модель</th><th>VIN</th><th>Приоритет</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div class="col panel">
+    <h3>Буфер доработки</h3>
+    <table id="reworkTable">
+      <thead><tr><th>ID</th><th>Модель</th><th>VIN</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Операции над кузовом</h3>
+  <div>
+    <select id="bodySelect"></select>
+
+    <button onclick="doRework()">Отправить на доработку</button>
+
+    <input id="returnPos" type="number" placeholder="позиция" style="width:90px;">
+    <button onclick="doReturn()">Вернуть на линию</button>
+
+    <input id="priorityVal" type="number" placeholder="новый приоритет" style="width:120px;">
+    <button onclick="doPriority()">Изменить приоритет</button>
+  </div>
+</div>
+
+<div class="panel metrics">
+  <h3>Метрики</h3>
+  <span>Готово: <span id="mCompleted">0</span></span>
+  <span>Throughput: <span id="mThroughput">0</span></span>
+  <span>Ср. время: <span id="mLeadTime">0</span></span>
+  <span>Узкое место: <span id="mBottleneck">-</span></span>
+</div>
+
+<div class="panel">
+  <h3>Журнал событий</h3>
+  <div class="log" id="eventLog"></div>
+</div>
+
+<script>
+async function fetchState() {
+  const res = await fetch('/api/state');
+  return res.json();
+}
+
+function render(state) {
+  document.getElementById('tickNum').textContent = state.tick;
+
+  const stBody = document.querySelector('#stationsTable tbody');
+  stBody.innerHTML = '';
+  state.stations.forEach(st => {
+    const tr = document.createElement('tr');
+    let statusHtml, progressHtml;
+    if (st.occupied_by) {
+      statusHtml = `<span class="busy">${st.occupied_by.model} (${st.occupied_by.id}, ${st.occupied_by.vin})</span>`;
+      progressHtml = `${st.ticks_spent}/${st.processing_ticks}`;
+    } else {
+      statusHtml = `<span class="free">свободна</span>`;
+      progressHtml = '-';
+    }
+    tr.innerHTML = `<td>${st.order}</td><td>${st.name} (${st.id})</td><td>${statusHtml}</td><td>${progressHtml}</td>`;
+    stBody.appendChild(tr);
+  });
+
+  const qBody = document.querySelector('#queueTable tbody');
+  qBody.innerHTML = '';
+  state.input_queue.forEach(b => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${b.id}</td><td>${b.model}</td><td>${b.vin}</td><td>${b.priority}</td>`;
+    qBody.appendChild(tr);
+  });
+
+  const rBody = document.querySelector('#reworkTable tbody');
+  rBody.innerHTML = '';
+  state.rework_buffer.forEach(b => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${b.id}</td><td>${b.model}</td><td>${b.vin}</td>`;
+    rBody.appendChild(tr);
+  });
+
+  const sel = document.getElementById('bodySelect');
+  sel.innerHTML = '';
+  state.bodies.forEach(b => {
+    const opt = document.createElement('option');
+    opt.value = b.id;
+    opt.textContent = `${b.id} — ${b.model} (${b.status})`;
+    sel.appendChild(opt);
+  });
+
+  document.getElementById('mCompleted').textContent = state.metrics.completed;
+  document.getElementById('mThroughput').textContent = state.metrics.throughput.toFixed(3);
+  document.getElementById('mLeadTime').textContent = state.metrics.avg_lead_time.toFixed(2);
+  document.getElementById('mBottleneck').textContent = state.bottleneck || '-';
+
+  const log = document.getElementById('eventLog');
+  log.innerHTML = state.event_log.slice().map(e =>
+    `[такт ${e.tick}] ${e.type} — ${e.body_id} (${e.from ?? '—'} → ${e.to ?? '—'})`
+  ).join('<br>');
+}
+
+async function refresh() {
+  const state = await fetchState();
+  render(state);
+}
+
+async function doTick() {
+  const res = await fetch('/api/tick', { method: 'POST' });
+  render(await res.json());
+}
+
+async function doReset() {
+  const res = await fetch('/api/reset', { method: 'POST' });
+  render(await res.json());
+}
+
+async function doRework() {
+  const body_id = document.getElementById('bodySelect').value;
+  const res = await fetch('/api/rework', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ body_id })
+  });
+  render(await res.json());
+}
+
+async function doReturn() {
+  const body_id = document.getElementById('bodySelect').value;
+  const position = Number(document.getElementById('returnPos').value || 0);
+  const res = await fetch('/api/return', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ body_id, position })
+  });
+  render(await res.json());
+}
+
+async function doPriority() {
+  const body_id = document.getElementById('bodySelect').value;
+  const priority = Number(document.getElementById('priorityVal').value || 0);
+  const res = await fetch('/api/priority', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ body_id, priority })
+  });
+  render(await res.json());
+}
+
+refresh();
+</script>
+
+</body>
+</html>

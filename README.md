@@ -1,58 +1,61 @@
-# MyCar Pro — MES: симулятор линии сборки
+# MyCar Pro — with frontend
 
-Симулятор конвейерной линии сборки кузовов (учебный проект, контур MES / Smart Factory).
-
-Кузова продвигаются по станциям по тактам. Любой кузов можно снять "на доработку"
-и вернуть обратно на линию с заданной позицией, менять приоритет во входной очереди.
-Все перемещения фиксируются в журнале событий. 
-
-## Запуск
-
-Требования: Python 3.10+
+## Requirements
 
 ```bash
-python src/main.py                              # загрузка 10 тактов
+pip install flask
+```
 
+## Run
 
-Демо-прогон загружает линию из `config/line_config.json`, печатает стартовое
-состояние, затем на каждом такте:
-- выполняет `tick()` и печатает состояние линии (ASCII-схема, станции, входная
-  очередь, буфер доработки);
-- на заранее заданных тактах выполняет операции `send_to_rework`, `change_priority`
-  и `return_to_line`, чтобы наглядно показать все возможности симулятора;
-- в конце печатает полный журнал событий.
+```bash
+python app.py
+```
 
-## Структура проекта
+Open **http://127.0.0.1:5000** in browser.
+
+The line loads from `json/config1.json` on startup.
+
+## What you can do in the UI
+
+- **Tick →** — advance the line by one tick (calls `engine.tick`)
+- **Отправить на доработку** — send the selected body to rework
+  (`engine.send_to_tework`)
+- **Вернуть на линию** — return a body from rework back into the input
+  queue at a given position (`engine.return_to_line`)
+- **Изменить приоритет** — change a body's priority in the input queue
+  (`engine.change_priority`)
+- **Сбросить симуляцию** — reload the line from `config1.json`
+
+The page shows stations, the input queue, the rework buffer, live metrics, and
+the full event log.
+
+## Project structure
 
 ```
-mycarpro-smart-factory/
-├── config/
-│   ├── config1.json      # стартовый конфиг
+mycar_app/
+├── app.py                  # Flask API layer, basically frontend
+├── json/
+│   └── config1.json        # line config
 ├── src/
-│   ├── model.py              # классы данных
-│   ├── json_loader.py       # загрузка конфига из json
-│   ├── engine.py              # вся логика: tick(), send_to_rework, return_to_line, change_priority
-│   ├── console_printer.py             # консольный вывод
-│   └── main.py                # мейн код
-└── README.md                   # то что здесь написано
+│   ├── model.py             # data classes 
+│   ├── json_loader.py       # config loader 
+│   ├── engine.py             # tick, rework, return, priority logic 
+│   ├── console_printer.py    # original console printer
+│   └── main.py                # original console version
+├── templates/
+│   └── index.html           # frontend
 ```
 
-## Формат конфига
+## API endpoints
 
-Файл `config/line_config.json`:
+All endpoints return the full serialized line state as JSON.
 
-```json
-{
-  "stations": [
-    { "id": "st1", "name": "THE FIRST ONE", "order": 0, "capacity": 1, "processingTicks": 2 }
-  ],
-  "bodies": [
-    { "id": "b1", "vin": "KZ0001", "model": "Toyota", "priority": 10 }
-  ]
-}
-```
-
-- `stations` — список станций линии, `order` задаёт их порядок на линии,
-  `processingTicks` — сколько тактов кузов обрабатывается на станции.
-- `bodies` — стартовый набор кузовов; входная очередь строится сортировкой
-  по `priority` (меньше число — выше приоритет).
+| Method | Endpoint        | Body                                 | Calls                    |
+|--------|-----------------|---------------------------------------|---------------------------|
+| GET    | `/api/state`    | —                                      | just reads current state |
+| POST   | `/api/tick`     | —                                      | `engine.tick`             |
+| POST   | `/api/rework`   | `{"body_id": "b1"}`                    | `engine.send_to_tework`   |
+| POST   | `/api/return`   | `{"body_id": "b1", "position": 5}`     | `engine.return_to_line`   |
+| POST   | `/api/priority` | `{"body_id": "b1", "priority": 1}`     | `engine.change_priority`  |
+| POST   | `/api/reset`    | —                                      | `json_loader.load_config` |

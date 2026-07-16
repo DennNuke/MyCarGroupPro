@@ -21,7 +21,7 @@ def tick(state: LineState):
 
         if i == n - 1:
             body.status = BodyStatus.DONE
-            body.currentStationId = None
+            body.current_station_id = None
             st.occupied_by = None
             st.ticks_spent = 0
 
@@ -37,7 +37,7 @@ def tick(state: LineState):
         if next_st.is_free():
             next_st.occupied_by = body_id
             next_st.ticks_spent = 0
-            body.currentStationId = next_st.id
+            body.current_station_id = next_st.id
             st.occupied_by = None
             st.ticks_spent = 0
             
@@ -51,7 +51,7 @@ def tick(state: LineState):
 
             first_st.occupied_by = body_id
             first_st.ticks_spent = 0
-            body.currentStationId = first_st.id
+            body.current_station_id = first_st.id
             body.status = BodyStatus.IN_LINE
             
             body.tick_entered = state.tick
@@ -61,8 +61,8 @@ def tick(state: LineState):
 
 def send_to_tework(state: LineState, body_id):
     body = state.bodies.get(body_id)
-    st = state.get_station(body.currentStationId)
-    body.currentStationId = None
+    st = state.get_station(body.current_station_id)
+    body.current_station_id = None
     st.occupied_by = None
     st.ticks_spent = 0
 
