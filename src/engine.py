@@ -134,20 +134,7 @@ def  change_priority(state: LineState, body_id, priority):
     _log(state, "PRIORITY_CHANGE", body_id, f"p: {body.priority}", f"p: {priority}")
     body.priority = priority
     state.input_queue.sort(key=lambda x: state.bodies.get(x).priority)
-    
 
-def _log(state: LineState, event_type: str, body_id: str, from_: str | None, to: str | None) -> None:
-    if state.event_log == None:
-        state.event_log = []
-    state.event_log.append(
-        {
-            "tick": state.tick,
-            "type": event_type,
-            "body_id": body_id,
-            "from": from_,
-            "to": to,
-        }
-    )
 
 def get_bottleneck(state: LineState):
     stations = state.stations_sorted()
@@ -165,6 +152,26 @@ def  break_station(state: LineState, st_id: str, ticks):
     st.status = StationStatus.DOWN
     st.remaining_down_ticks = ticks
     _log(state, "STATION BREAK", st_id, None, None)
+
+def run_scenario(config, ticks):
+    line_state, commands = config
+    for n in range(0, ticks):
+        tick(line_state)
+        update(commands, line_state)
+    return line_state.get_metrics()[0], line_state.get_metrics()[1], get_bottleneck(line_state)
+
+def _log(state: LineState, event_type: str, body_id: str, from_: str | None, to: str | None) -> None:
+    if state.event_log == None:
+        state.event_log = []
+    state.event_log.append(
+        {
+            "tick": state.tick,
+            "type": event_type,
+            "body_id": body_id,
+            "from": from_,
+            "to": to,
+        }
+    )
 
 def update(commands, state: LineState):
     for n in range(0, len(commands)):

@@ -13,7 +13,8 @@ from engine import (
     return_to_line,
     change_priority,
     get_bottleneck,
-    break_station
+    break_station,
+    update
 )
 
 CONFIG_PATH = Path(__file__).parent / "json" / "config1.json"
