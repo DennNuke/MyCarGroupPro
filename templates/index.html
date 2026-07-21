@@ -40,7 +40,7 @@
   <div class="col panel">
     <h3>Станции</h3>
     <table id="stationsTable">
-      <thead><tr><th>#</th><th>Станция</th><th>Статус</th><th>Прогресс</th></tr></thead>
+      <thead><tr><th>#</th><th>Станция</th><th>Свободен?</th><th>Статус</th><th>Прогресс</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -74,6 +74,16 @@
 
     <input id="priorityVal" type="number" placeholder="новый приоритет" style="width:120px;">
     <button onclick="doPriority()">Изменить приоритет</button>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Операции над станциями</h3>
+  <div>
+    <select id="stationSelect"></select>
+
+    <input id="breakTicks" type="number" placeholder="тики" style="width:90px;">
+    <button onclick="doBreak()">Сломать станцию</button>
   </div>
 </div>
 
@@ -111,7 +121,7 @@ function render(state) {
       statusHtml = `<span class="free">свободна</span>`;
       progressHtml = '-';
     }
-    tr.innerHTML = `<td>${st.order}</td><td>${st.name} (${st.id})</td><td>${statusHtml}</td><td>${progressHtml}</td>`;
+    tr.innerHTML = `<td>${st.order}</td><td>${st.name} (${st.id})</td><td>${statusHtml}</td><td>${st.status}</td><td>${progressHtml}</td>`;
     stBody.appendChild(tr);
   });
 
@@ -138,6 +148,15 @@ function render(state) {
     opt.value = b.id;
     opt.textContent = `${b.id} — ${b.model} (${b.status})`;
     sel.appendChild(opt);
+  });
+
+  const st_sel = document.getElementById('stationSelect');
+  st_sel.innerHTML = '';
+  state.stations.forEach(st => {
+    const opt = document.createElement('option');
+    opt.value = st.id;
+    opt.textContent = `${st.id} — ${st.name} (${st.status})`;
+    st_sel.appendChild(opt);
   });
 
   document.getElementById('mCompleted').textContent = state.metrics.completed;
@@ -183,6 +202,23 @@ async function doReturn() {
     body: JSON.stringify({ body_id, position })
   });
   render(await res.json());
+}
+
+async function doBreak() {
+    const st_id = document.getElementById('stationSelect').value;
+    const ticks = Number(document.getElementById('breakTicks').value || 0);
+
+    const res = await fetch('/api/break', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({st_id, ticks})
+    });
+
+    if (!res.ok) {
+        console.error(await res.text());
+        return;
+    }
+
+    render(await res.json());
 }
 
 async function doPriority() {

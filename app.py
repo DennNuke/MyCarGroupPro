@@ -5,7 +5,7 @@ from flask import Flask, jsonify, request, render_template
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from model import BodyStatus, LineState 
+from model import BodyStatus, LineState, StationStatus 
 from json_loader import load_config 
 from engine import (
     tick,
@@ -13,13 +13,14 @@ from engine import (
     return_to_line,
     change_priority,
     get_bottleneck,
+    break_station
 )
 
 CONFIG_PATH = Path(__file__).parent / "json" / "config1.json"
 
 app = Flask(__name__)
 
-state: LineState = load_config(CONFIG_PATH)
+state, commands = load_config(CONFIG_PATH)
 
 
 def current_station_of(body) -> str | None:
@@ -46,6 +47,8 @@ def serialize_state():
             "ticks_spent": st.ticks_spent,
             "busy_ticks": st.busy_ticks,
             "occupied_by": occ_body,
+            "status": st.status,
+            "remaining_down_ticks": st.remaining_down_ticks
         })
 
     input_queue = []
@@ -123,6 +126,14 @@ def api_rework():
     data = request.get_json(force=True)
     body_id = data.get("body_id")
     send_to_tework(state, body_id)
+    return jsonify(serialize_state())
+
+@app.route("/api/break", methods=["POST"])
+def api_break():
+    data = request.get_json(force=True)
+    st_id = data.get("st_id")
+    ticks = data.get("ticks")
+    break_station(state, st_id, ticks)
     return jsonify(serialize_state())
 
 

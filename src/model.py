@@ -7,6 +7,10 @@ class BodyStatus(str, Enum):
     IN_REWORK = "in_rework" 
     DONE = "done" 
 
+class StationStatus(str, Enum):
+    UP = "up"        
+    DOWN = "down"
+
 class Station:
     def __init__(self,id:str, name:str, order:int, capacity:int, processing_ticks:int):
         self.id = id
@@ -17,6 +21,8 @@ class Station:
         self.occupied_by = None
         self.ticks_spent = 0
         self.busy_ticks = 0
+        self.status = StationStatus.UP
+        self.remaining_down_ticks = 0
 
     def is_free(self) -> bool:
         return self.occupied_by is None

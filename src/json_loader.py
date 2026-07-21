@@ -34,8 +34,11 @@ def load_config(path: str | Path) -> LineState:
         b["id"] for b in sorted(bodies_raw, key=lambda x: x.get("priority", 100))
     ]
 
+    commands = raw.get("commands")
+    
+
     return LineState(
         stations=stations,
         bodies=bodies,
         input_queue=input_queue,
-    )
+    ), commands

@@ -11,5 +11,11 @@
     { "id": "b2", "vin": "RU0002", "model": "BMW", "priority": 20 },
     { "id": "b3", "vin": "KG0003", "model": "Toyota", "priority": 30 },
     { "id": "b4", "vin": "US0004", "model": "Tesla", "priority": 40 }
+  ],
+  "commands": [
+    {"type": "send_to_rework", "object_id":"b1", "param":0, "atTick":3}, 
+    {"type": "return_to_line", "object_id":"b1", "param":2, "atTick":5}, 
+    {"type": "change_priority", "object_id":"b4", "param":4, "atTick":6}, 
+    {"type": "break_station", "object_id":"st2", "param":4, "atTick":8}
   ]
 }
