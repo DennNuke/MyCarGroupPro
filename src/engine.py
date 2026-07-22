@@ -11,10 +11,11 @@ def tick(state: LineState):
             continue
 
         if st.status == StationStatus.DOWN:
+            st.remaining_down_ticks -= 1
+            state.down_time_total +=1
             if st.remaining_down_ticks == 0:
                 st.status = StationStatus.UP
                 _log(state, "STATION RECOVER", st.id, None, None)
-            st.remaining_down_ticks -= 1
             continue
 
         st.busy_ticks +=1
@@ -54,12 +55,12 @@ def tick(state: LineState):
         first_st = stations[0]
         if first_st.is_free() and state.input_queue and first_st.status :
             if st.status == StationStatus.DOWN:
+                st.remaining_down_ticks -= 1
+                state.down_time_total +=1
                 if st.remaining_down_ticks == 0:
                     st.status = StationStatus.UP
                     _log(state, "STATION RECOVER", st.id, None, None)
-                st.remaining_down_ticks -= 1
             else:
-                st.remaining_down_ticks -= 1
                 body_id = state.input_queue.pop(0)
                 body = state.bodies[body_id]
 

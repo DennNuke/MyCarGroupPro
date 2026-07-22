@@ -49,6 +49,7 @@ class LineState:
         self.completed = 0
         self.throughput = 0
         self.avgLeadTime = 0
+        self.down_time_total = 0
 
     def get_station(self, station_id: str) -> Station:
         for st in self.stations:
