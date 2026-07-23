@@ -1,7 +1,10 @@
+import os
 import sys
+from functools import wraps
 from pathlib import Path
 
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, session, redirect, url_for
+from werkzeug.security import generate_password_hash, check_password_hash
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
@@ -20,8 +23,49 @@ from engine import (
 CONFIG_PATH = Path(__file__).parent / "json" / "config1.json"
 
 app = Flask(__name__)
+# In production, set this via an environment variable instead of hardcoding it.
+app.secret_key = os.environ.get("MYCAR_SECRET_KEY", "dev-secret-key-change-me")
+
+# Simple single-user login store. Default password is "admin123" —
+# change it (or wire up real users) before deploying this anywhere real.
+USERS = {
+    "admin": generate_password_hash(os.environ.get("MYCAR_ADMIN_PASSWORD", "admin123")),
+}
 
 state, commands = load_config(CONFIG_PATH)
+
+
+def login_required(view_func):
+    @wraps(view_func)
+    def wrapped(*args, **kwargs):
+        if not session.get("user"):
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "unauthorized"}), 401
+            return redirect(url_for("login"))
+        return view_func(*args, **kwargs)
+    return wrapped
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "GET":
+        return render_template("login.html")
+
+    username = request.form.get("username", "")
+    password = request.form.get("password", "")
+    stored_hash = USERS.get(username)
+
+    if stored_hash and check_password_hash(stored_hash, password):
+        session["user"] = username
+        return redirect(url_for("index"))
+
+    return render_template("login.html", error="Invalid username or password"), 401
+
+
+@app.route("/logout", methods=["POST"])
+def logout():
+    session.pop("user", None)
+    return redirect(url_for("login"))
 
 
 def current_station_of(body) -> str | None:
@@ -107,22 +151,26 @@ def serialize_state():
 
 
 @app.route("/")
+@login_required
 def index():
     return render_template("index.html")
 
 
 @app.route("/api/state", methods=["GET"])
+@login_required
 def api_state():
     return jsonify(serialize_state())
 
 
 @app.route("/api/tick", methods=["POST"])
+@login_required
 def api_tick():
     tick(state)
     return jsonify(serialize_state())
 
 
 @app.route("/api/rework", methods=["POST"])
+@login_required
 def api_rework():
     data = request.get_json(force=True)
     body_id = data.get("body_id")
@@ -130,6 +178,7 @@ def api_rework():
     return jsonify(serialize_state())
 
 @app.route("/api/break", methods=["POST"])
+@login_required
 def api_break():
     data = request.get_json(force=True)
     st_id = data.get("st_id")
@@ -139,6 +188,7 @@ def api_break():
 
 
 @app.route("/api/return", methods=["POST"])
+@login_required
 def api_return():
     data = request.get_json(force=True)
     body_id = data.get("body_id")
@@ -148,6 +198,7 @@ def api_return():
 
 
 @app.route("/api/priority", methods=["POST"])
+@login_required
 def api_priority():
     data = request.get_json(force=True)
     body_id = data.get("body_id")
@@ -157,6 +208,7 @@ def api_priority():
 
 
 @app.route("/api/reset", methods=["POST"])
+@login_required
 def api_reset():
     global state    
     state = load_config(CONFIG_PATH)
